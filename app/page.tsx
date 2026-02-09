@@ -231,7 +231,7 @@ export default async function Home() {
             Live Updates
           </h1>
           <p className="text-sm opacity-70">
-            Real-time line updates with confidence and short-term predictions.
+            Real-time line updates with confidence levels and short-term predictions.
           </p>
         </header>
 
@@ -264,8 +264,6 @@ export default async function Home() {
                     </div>
                     <div className="mt-1 text-xs opacity-60">
                       {v.updatedText}
-                      {v.meta !== "No recent reports" && ` · ${v.meta}`}
-                      {v.confidence === "Low" && ` · ${v.confidence} confidence = few or stale reports`}
                     </div>
                   </div>
 

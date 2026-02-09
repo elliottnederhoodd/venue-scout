@@ -42,7 +42,7 @@ function ReportModal({
         className="w-full max-w-md rounded-2xl bg-white p-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-xs font-semibold tracking-wide uppercase opacity-60">Report status</div>
+        <div className="text-xs font-semibold tracking-wide uppercase opacity-60">Report Line Status</div>
         <div className="mt-1 text-xl font-semibold tracking-tight">{venueName}</div>
 
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -168,7 +168,7 @@ export default function VenueClient({
           type="button"
           onClick={() => setOpen(true)}
         >
-          Report status
+          Report Line Status
         </button>
         <ReportModal
           open={open}
@@ -192,7 +192,7 @@ export default function VenueClient({
           type="button"
           onClick={() => setOpen(true)}
         >
-          Report status
+          Report Line Status
         </button>
       )}
 

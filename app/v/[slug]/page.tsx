@@ -138,13 +138,42 @@ function getDowHourDetroit(date: Date) {
   return { dow: dowMap[weekday] ?? 0, hour: Number(hourStr) };
 }
 
-function predictLabel(currentScore: number, baselineScore: number | null): CrowdLabel {
+function predictLabel(
+  currentScore: number,
+  baselineScore: number | null,
+  targetDate: Date
+): CrowdLabel {
   const blended =
     baselineScore === null
       ? currentScore
       : 0.55 * baselineScore + 0.45 * currentScore;
 
-  return labelFromScore(blended);
+  // Apply spike boost for 10:30pm-12am on Thursday (4), Friday (5), Saturday (6)
+  const { dow, hour } = getDowHourDetroit(targetDate);
+  
+  // Check if it's Thursday, Friday, or Saturday night (10:30pm-12am)
+  // Hours 22 and 23 are 10pm-11:59pm
+  // Hour 0 (midnight) on Sunday is actually Saturday night continuing
+  const isWeekendNight = 
+    ((dow === 4 || dow === 5 || dow === 6) && (hour === 22 || hour === 23)) ||
+    (dow === 0 && hour === 0); // Sunday midnight = Saturday night continuing
+  
+  let boostedScore = blended;
+  if (isWeekendNight) {
+    // Boost by 0.4-0.6 points depending on how close to peak time
+    // Peak is around 11pm, so we taper the boost
+    let boostAmount = 0.4;
+    if (hour === 22) {
+      boostAmount = 0.4; // 10:30-11pm: moderate boost
+    } else if (hour === 23) {
+      boostAmount = 0.6; // 11pm-12am: peak boost
+    } else if (hour === 0) {
+      boostAmount = 0.5; // 12am-12:30am: still high but tapering
+    }
+    boostedScore = Math.min(4, blended + boostAmount);
+  }
+
+  return labelFromScore(boostedScore);
 }
 
 export default async function VenuePage({
@@ -258,7 +287,9 @@ export default async function VenuePage({
           baselines?.find((x) => x.dow === b.dow && x.hour === b.hour)?.mean_score ??
           null;
 
-        const lbl = predictLabel(score, base);
+        // Get the target date for this prediction
+        const targetDate = new Date(now.getTime() + min * 60000);
+        const lbl = predictLabel(score, base, targetDate);
         return { minutes: min, label: lbl };
       });
 
@@ -314,14 +345,25 @@ export default async function VenuePage({
           </div>
         </header>
 
+        {/* Main call to action - Report button */}
+        <div className="hidden md:block">
+          <VenueClient venueId={venue.id} venueName={venue.name} />
+        </div>
+
         {/* Predictions - compact */}
         {predictions && (
-          <section>
+          <section className="space-y-2">
+            <div>
+              <h2 className="text-base font-semibold tracking-tight">Line Predictions</h2>
+              <p className="text-xs opacity-70 mt-1">
+                Based on our predictive model, this is what we think lines will look like in:
+              </p>
+            </div>
             <div className="vs-card px-4 py-3">
-              <div className="flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center justify-between gap-3 text-xs flex-wrap">
                 {predictions.map((pred, idx) => (
                   <div key={pred.minutes} className="flex items-center gap-1.5">
-                    <span className="opacity-60">{pred.minutes}m</span>
+                    <span className="opacity-60">{pred.minutes} min</span>
                     <span className={statusClass(pred.label)}>
                       {pred.label}
                     </span>
@@ -354,9 +396,8 @@ export default async function VenuePage({
           </div>
         </details>
 
-        {/* Actions - clear separation */}
-        <div className="hidden md:block space-y-3">
-          <VenueClient venueId={venue.id} venueName={venue.name} />
+        {/* Alert subscription */}
+        <div className="hidden md:block">
           <AlertSubscription venueId={venue.id} />
         </div>
       </div>
