@@ -11,21 +11,18 @@ export async function POST(req: Request) {
     }
 
     // Fire-and-forget insert (don't wait for response)
-    supabase
-      .from("analytics_events")
-      .insert({
-        event: String(event),
-        device_id: String(device_id),
-        venue_id: venue_id || null,
-        metadata: metadata || null,
-      })
-      .then(() => {
-        // Success - no action needed
-      })
-      .catch((err) => {
-        // Fail silently
-        console.debug("[analytics/log] Insert failed:", err);
-      });
+    try {
+      await supabase
+        .from("analytics_events")
+        .insert({
+          event,
+          venue_id,
+          device_id,
+          metadata,
+        });
+    } catch (err) {
+      console.debug("[analytics/log] Insert failed:", err);
+    }
 
     return NextResponse.json({ ok: true });
   } catch {
